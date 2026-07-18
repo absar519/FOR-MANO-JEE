@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For Mano — A Universe of One</title>
+
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   Matte black canvas, wine-burgundy glow, rose-gold warmth,
+   ivory type, soft gold accent. Everything else derives from these.
+   ============================================================ */
+:root{
+  --black:        #080808;
+  --black-soft:   #0d0b0c;
+  --wine:         #6D071A;
+  --wine-glow:    rgba(109,7,26,0.55);
+  --rose-gold:    #D4AF8A;
+  --ivory:        #F8F7F4;
+  --gold:         #E8C874;
+  --gold-soft:    rgba(232,200,116,0.35);
+  --serif: "Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"Times New Roman",serif;
+  --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--black);
+  color:var(--ivory);
+  font-family:var(--sans);
+  overflow-x:hidden;
+  cursor:none;
+  min-height:100vh;
+}
+::selection{background:var(--wine);color:var(--ivory);}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;scroll-behavior:auto !important;}
+}
+
+a{color:inherit;}
+button{font-family:inherit;}
+
+/* ============================================================
+   BACKGROUND CANVAS — stars, nebula, shooting stars, parallax
+   ============================================================ */
+#sky{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(109,7,26,0.18), transparent 55%),
+    radial-gradient(ellipse at 80% 70%, rgba(212,175,138,0.10), transparent 60%),
+    var(--black);
+}
+
+/* ============================================================
+   CUSTOM CURSOR
+   ============================================================ */
+#cursor-glow{
+  position:fixed;
+  top:0;left:0;
+  width:26px;height:26px;
+  border-radius:50%;
+  border:1px solid var(--rose-gold);
+  pointer-events:none;
+  z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:width .25s var(--ease), height .25s var(--ease), border-color .25s;
+  mix-blend-mode:screen;
+}
+#cursor-glow.active{
+  width:46px;height:46px;
+  border-color:var(--gold);
+  background:radial-gradient(circle, rgba(232,200,116,0.15), transparent 70%);
+}
+.cursor-dot{
+  position:fixed;
+  width:4px;height:4px;
+  border-radius:50%;
+  background:var(--gold);
+  pointer-events:none;
+  z-index:9998;
+  transform:translate(-50%,-50%);
+}
+
+@media (hover:none){
+  body{cursor:auto;}
+  #cursor-glow,.cursor-dot{display:none;}
+}
+
+/* ============================================================
+   PROGRESS NAV — constellation of chapters
+   ============================================================ */
+#chapter-nav{
+  position:fixed;
+  right:22px;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:500;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  align-items:center;
+}
+.nav-dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:rgba(248,247,244,0.25);
+  border:1px solid rgba(212,175,138,0.4);
+  cursor:pointer;
+  transition:all .4s var(--ease);
+  position:relative;
+}
+.nav-dot::after{
+  content:attr(data-label);
+  position:absolute;
+  right:18px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:11px;
+  letter-spacing:.06em;
+  white-space:nowrap;
+  color:var(--rose-gold);
+  opacity:0;
+  transition:opacity .3s;
+  pointer-events:none;
+}
+.nav-dot:hover::after{opacity:1;}
+.nav-dot.current{
+  background:var(--gold);
+  box-shadow:0 0 12px var(--gold);
+  transform:scale(1.4);
+}
+.nav-dot.hidden-chapter{display:none;}
+.nav-dot.revealed{display:block;}
+
+@media (max-width:720px){
+  #chapter-nav{right:10px;gap:12px;}
+  .nav-dot::after{display:none;}
+}
+
+/* ============================================================
+   AUDIO PLAYER
+   ============================================================ */
+#audio-player{
+  position:fixed;
+  bottom:20px;
+  left:20px;
+  z-index:500;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:rgba(8,8,8,0.55);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(212,175,138,0.25);
+  border-radius:40px;
+  padding:10px 16px;
+  transition:opacity .5s;
+}
+#audio-player button{
+  background:none;
+  border:none;
+  color:var(--rose-gold);
+  cursor:pointer;
+  font-size:15px;
+  width:26px;height:26px;
+  display:flex;align-items:center;justify-content:center;
+  transition:color .3s, transform .3s;
+}
+#audio-player button:hover{color:var(--gold);transform:scale(1.15);}
+#volume-slider{
+  -webkit-appearance:none;
+  width:70px;height:2px;
+  background:rgba(212,175,138,0.35);
+  border-radius:2px;
+  outline:none;
+}
+#volume-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:9px;height:9px;
+  border-radius:50%;
+  background:var(--gold);
+  cursor:pointer;
+}
+#volume-slider::-moz-range-thumb{
+  width:9px;height:9px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;
+}
+.audio-label{
+  font-size:10px;
+  letter-spacing:.08em;
+  color:rgba(248,247,244,0.5);
+  text-transform:uppercase;
+}
+@media (max-width:600px){
+  #audio-player{left:10px;bottom:10px;padding:8px 12px;}
+  #volume-slider{width:44px;}
+}
+
+/* ============================================================
+   SHARED CHAPTER LAYOUT
+   ============================================================ */
+.chapter{
+  position:relative;
+  z-index:2;
+  min-height:100vh;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:8vh 6vw;
+}
+.eyebrow{
+  font-size:12px;
+  letter-spacing:.35em;
+  text-transform:uppercase;
+  color:var(--rose-gold);
+  opacity:.8;
+  margin-bottom:18px;
+}
+.reveal{
+  opacity:0;
+  transform:translateY(28px);
+  filter:blur(6px);
+  transition:opacity 1.2s var(--ease), transform 1.2s var(--ease), filter 1.2s var(--ease);
+}
+.reveal.visible{
+  opacity:1;
+  transform:translateY(0);
+  filter:blur(0);
+}
+.chapter h2{
+  font-family:var(--serif);
+  font-weight:400;
+  font-size:clamp(2rem,5vw,3.6rem);
+  color:var(--ivory);
+  margin-bottom:22px;
+  letter-spacing:.02em;
+}
+.chapter p.lede{
+  max-width:560px;
+  font-size:clamp(1rem,1.6vw,1.2rem);
+  line-height:1.85;
+  color:rgba(248,247,244,0.82);
+  font-weight:300;
+}
+.glow-btn{
+  margin-top:44px;
+  background:transparent;
+  border:1px solid var(--gold-soft);
+  color:var(--gold);
+  padding:14px 38px;
+  border-radius:40px;
+  font-size:13px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all .4s var(--ease);
+  position:relative;
+  overflow:hidden;
+}
+.glow-btn:hover{
+  box-shadow:0 0 30px var(--gold-soft);
+  border-color:var(--gold);
+  color:var(--black);
+  background:var(--gold);
+}
+
+/* ============================================================
+   CHAPTER 1 — OPENING GALAXY
+   ============================================================ */
+#ch-opening h1{
+  font-family:var(--serif);
+  font-weight:400;
+  font-size:clamp(2.6rem,9vw,6rem);
+  letter-spacing:.05em;
+  background:linear-gradient(180deg, var(--ivory), var(--rose-gold));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:0 0 60px rgba(212,175,138,0.25);
+  animation:driftIn 2.4s var(--ease);
+}
+@keyframes driftIn{
+  from{opacity:0; letter-spacing:.3em; filter:blur(10px);}
+  to{opacity:1; letter-spacing:.05em; filter:blur(0);}
+}
+#ch-opening .sub{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:clamp(1rem,2vw,1.3rem);
+  color:var(--rose-gold);
+  margin-top:16px;
+  opacity:0;
+  animation:fadeInSlow 2s var(--ease) 1.4s forwards;
+}
+@keyframes fadeInSlow{to{opacity:.85;}}
+.scroll-hint{
+  position:absolute;
+  bottom:36px;
+  font-size:11px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:rgba(248,247,244,0.4);
+  animation:bob 2.6s ease-in-out infinite;
+}
+@keyframes bob{
+  0%,100%{transform:translateY(0);opacity:.4;}
+  50%{transform:translateY(8px);opacity:.8;}
+}
+
+/* ============================================================
+   CHAPTER 2 — THE DOOR
+   ============================================================ */
+#ch-door .door-scene{
+  position:relative;
+  width:260px;
+  height:400px;
+  perspective:1600px;
+}
+.door-frame{
+  position:absolute;
+  inset:0;
+  border:2px solid var(--rose-gold);
+  border-radius:130px 130px 6px 6px;
+  box-shadow:0 0 60px rgba(212,175,138,0.15), inset 0 0 40px rgba(0,0,0,0.6);
+  background:linear-gradient(180deg, #14100e, #050404);
+  cursor:pointer;
+  transform-style:preserve-3d;
+  transform-origin:left center;
+  transition:transform 2.2s var(--ease);
+}
+.door-frame.open{
+  transform:rotateY(-108deg);
+}
+.door-frame::before{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border-radius:120px 120px 4px 4px;
+  border:1px solid rgba(212,175,138,0.25);
+}
+.door-handle{
+  position:absolute;
+  right:22px;
+  top:50%;
+  width:10px;height:10px;
+  border-radius:50%;
+  background:var(--gold);
+  box-shadow:0 0 12px var(--gold);
+}
+.door-light{
+  position:absolute;
+  inset:0;
+  margin:auto;
+  width:0;height:0;
+  border-radius:50%;
+  background:radial-gradient(circle, var(--gold) 0%, var(--rose-gold) 35%, transparent 70%);
+  opacity:0;
+  pointer-events:none;
+  z-index:5;
+}
+.door-light.burst{
+  animation:doorBurst 2.6s var(--ease) forwards;
+}
+@keyframes doorBurst{
+  0%{width:0;height:0;opacity:0;}
+  40%{opacity:1;}
+  100%{width:1400px;height:1400px;opacity:0;}
+}
+#ch-door p.hint{
+  margin-top:32px;
+  font-size:12px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:rgba(212,175,138,0.6);
+}
+
+/* ============================================================
+   CHAPTER 3 — INTERACTIVE STAR UNIVERSE
+   ============================================================ */
+#ch-universe{
+  min-height:130vh;
+}
+.universe-stage{
+  position:relative;
+  width:100%;
+  max-width:900px;
+  height:70vh;
+  min-height:480px;
+}
+.hotstar{
+  position:absolute;
+  width:14px;height:14px;
+  border-radius:50%;
+  background:var(--ivory);
+  box-shadow:0 0 8px 2px rgba(248,247,244,0.6);
+  cursor:pointer;
+  animation:twinkleStar 3.4s ease-in-out infinite;
+  transition:transform .3s var(--ease);
+}
+.hotstar:hover{transform:scale(1.6);box-shadow:0 0 22px 6px var(--gold);}
+@keyframes twinkleStar{
+  0%,100%{opacity:.55;}
+  50%{opacity:1;}
+}
+.hotstar .label{
+  position:absolute;
+  top:-30px;left:50%;
+  transform:translateX(-50%);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--rose-gold);
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity .3s;
+  pointer-events:none;
+}
+.hotstar:hover .label{opacity:1;}
+
+.moon{
+  position:absolute;
+  top:6%;
+  right:8%;
+  width:70px;height:70px;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #fdf6e3, var(--rose-gold) 70%);
+  box-shadow:0 0 40px rgba(232,200,116,0.35);
+  cursor:pointer;
+  transition:box-shadow .4s, transform .4s;
+}
+.moon:hover{box-shadow:0 0 70px rgba(232,200,116,0.6);transform:scale(1.05);}
+.moon.pulse{animation:moonPulse .8s var(--ease);}
+@keyframes moonPulse{
+  0%{box-shadow:0 0 40px rgba(232,200,116,0.35);}
+  50%{box-shadow:0 0 100px rgba(232,200,116,0.85);}
+  100%{box-shadow:0 0 40px rgba(232,200,116,0.35);}
+}
+
+.tooltip-card{
+  position:absolute;
+  bottom:-6vh;
+  left:50%;
+  transform:translateX(-50%) translateY(10px);
+  width:min(440px,86vw);
+  background:rgba(8,8,8,0.7);
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(212,175,138,0.3);
+  border-radius:14px;
+  padding:20px 26px;
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:1.02rem;
+  line-height:1.7;
+  color:var(--ivory);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .5s var(--ease), transform .5s var(--ease);
+}
+.tooltip-card.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+.moon-counter{
+  position:absolute;
+  bottom:2vh;
+  right:2vw;
+  font-size:10px;
+  letter-spacing:.1em;
+  color:rgba(212,175,138,0.35);
+}
+
+/* ============================================================
+   CHAPTER 4 — MEMORY TIMELINE
+   ============================================================ */
+.timeline{
+  position:relative;
+  max-width:640px;
+  width:100%;
+  padding-left:26px;
+  border-left:1px solid rgba(212,175,138,0.35);
+  text-align:left;
+}
+.timeline-item{
+  position:relative;
+  margin-bottom:56px;
+  padding-left:8px;
+}
+.timeline-item::before{
+  content:"";
+  position:absolute;
+  left:-31px;
+  top:6px;
+  width:9px;height:9px;
+  border-radius:50%;
+  background:var(--gold);
+  box-shadow:0 0 10px var(--gold);
+}
+.timeline-item .date{
+  font-size:12px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--rose-gold);
+  display:block;
+  margin-bottom:8px;
+}
+.timeline-item p{
+  font-family:var(--serif);
+  font-size:1.15rem;
+  line-height:1.75;
+  color:var(--ivory);
+  font-weight:400;
+}
+
+/* ============================================================
+   CHAPTER 5 — FLOATING REASONS
+   ============================================================ */
+#ch-reasons{min-height:120vh;}
+.lantern-field{
+  position:relative;
+  width:100%;
+  max-width:1000px;
+  height:78vh;
+  min-height:520px;
+}
+.lantern{
+  position:absolute;
+  width:150px;
+  padding:16px 18px;
+  border-radius:16px;
+  background:rgba(109,7,26,0.14);
+  border:1px solid rgba(212,175,138,0.3);
+  backdrop-filter:blur(6px);
+  font-family:var(--serif);
+  font-size:.92rem;
+  line-height:1.5;
+  color:var(--ivory);
+  cursor:pointer;
+  text-align:center;
+  animation:floatY 7s ease-in-out infinite;
+  transition:transform .4s var(--ease), box-shadow .4s, background .4s;
+}
+.lantern:hover{
+  transform:scale(1.08);
+  box-shadow:0 0 30px rgba(232,200,116,0.35);
+  background:rgba(109,7,26,0.28);
+}
+.lantern.opened{
+  background:rgba(232,200,116,0.14);
+  border-color:var(--gold);
+}
+@keyframes floatY{
+  0%,100%{transform:translateY(0px);}
+  50%{transform:translateY(-22px);}
+}
+
+/* ============================================================
+   CHAPTER 6 — MEMORY JAR
+   ============================================================ */
+.jar-wrap{position:relative;width:260px;height:340px;}
+.jar-svg{width:100%;height:100%;filter:drop-shadow(0 0 30px rgba(212,175,138,0.15));}
+.firefly{
+  position:absolute;
+  width:10px;height:10px;
+  border-radius:50%;
+  background:var(--gold);
+  box-shadow:0 0 10px var(--gold), 0 0 20px var(--wine-glow);
+  cursor:pointer;
+  animation:fireflyDrift 5s ease-in-out infinite;
+}
+@keyframes fireflyDrift{
+  0%,100%{transform:translate(0,0);}
+  25%{transform:translate(8px,-14px);}
+  50%{transform:translate(-6px,-4px);}
+  75%{transform:translate(10px,6px);}
+}
+#ch-jar p.hint{margin-top:26px;font-size:12px;letter-spacing:.12em;color:rgba(212,175,138,0.55);text-transform:uppercase;}
+
+/* ============================================================
+   CHAPTER 7 — MINI LOVE GAME
+   ============================================================ */
+#game-canvas{
+  background:radial-gradient(ellipse at 50% 0%, rgba(109,7,26,0.15), transparent 70%);
+  border:1px solid rgba(212,175,138,0.25);
+  border-radius:16px;
+  cursor:none;
+  max-width:100%;
+  touch-action:none;
+}
+.game-hud{
+  display:flex;
+  gap:26px;
+  margin-bottom:18px;
+  font-size:12px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--rose-gold);
+}
+.game-message{
+  margin-top:22px;
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:1.15rem;
+  color:var(--gold);
+  min-height:1.5em;
+}
+
+/* ============================================================
+   CHAPTER 8 — FUTURE DREAMS
+   ============================================================ */
+.dream-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:22px;
+  max-width:920px;
+  width:100%;
+  margin-top:20px;
+}
+.dream-card{
+  background:linear-gradient(160deg, rgba(109,7,26,0.16), rgba(8,8,8,0.4));
+  border:1px solid rgba(212,175,138,0.22);
+  border-radius:16px;
+  padding:28px 22px;
+  text-align:left;
+}
+.dream-card .icon{font-size:20px;color:var(--gold);margin-bottom:14px;display:block;}
+.dream-card p{font-family:var(--serif);font-size:1.05rem;line-height:1.6;color:var(--ivory);}
+
+/* ============================================================
+   CHAPTER 9 — SECRET ROOM
+   ============================================================ */
+#ch-secret{display:none;}
+#ch-secret.unlocked{display:flex;}
+.secret-glow{
+  width:120px;height:120px;
+  border-radius:50%;
+  background:radial-gradient(circle, var(--gold), var(--wine) 70%, transparent 100%);
+  box-shadow:0 0 80px rgba(232,200,116,0.5);
+  margin-bottom:36px;
+  animation:secretPulse 3.5s ease-in-out infinite;
+}
+@keyframes secretPulse{
+  0%,100%{transform:scale(1);opacity:.85;}
+  50%{transform:scale(1.1);opacity:1;}
+}
+#ch-locked-hint{
+  position:fixed;
+  bottom:80px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:11px;
+  letter-spacing:.1em;
+  color:rgba(212,175,138,0.35);
+  z-index:400;
+  text-align:center;
+  transition:opacity .6s;
+  pointer-events:none;
+}
+
+/* ============================================================
+   CHAPTER 10 — FINAL GALAXY ENDING
+   ============================================================ */
+#ch-finale{min-height:150vh;position:relative;}
+#finale-canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+.letter{
+  position:relative;
+  z-index:3;
+  max-width:520px;
+  background:rgba(8,8,8,0.55);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(212,175,138,0.3);
+  border-radius:6px;
+  padding:44px 40px;
+  font-family:var(--serif);
+  font-size:1.08rem;
+  line-height:1.95;
+  color:var(--ivory);
+  text-align:left;
+  opacity:0;
+  transition:opacity 2.5s var(--ease);
+}
+.letter.show{opacity:1;}
+.letter .sign{
+  margin-top:26px;
+  font-style:italic;
+  color:var(--rose-gold);
+}
+.final-quote{
+  z-index:3;
+  position:relative;
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:clamp(1.2rem,2.4vw,1.6rem);
+  color:var(--gold);
+  max-width:520px;
+  margin-top:60px;
+  opacity:0;
+  transition:opacity 2s var(--ease);
+  line-height:1.7;
+}
+.final-quote.show{opacity:1;}
+#forever-btn{position:relative;z-index:3;}
+.forever-screen{
+  position:fixed;
+  inset:0;
+  z-index:6000;
+  background:var(--black);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+}
+.forever-screen.active{display:flex;}
+.forever-screen h3{
+  font-family:var(--serif);
+  font-weight:400;
+  font-size:clamp(1.6rem,4vw,2.6rem);
+  color:var(--ivory);
+  text-align:center;
+  padding:0 6vw;
+  opacity:0;
+  animation:fadeInSlow 3s var(--ease) .5s forwards;
+}
+#forever-canvas{position:absolute;inset:0;width:100%;height:100%;}
+
+footer.credit{
+  position:relative;
+  z-index:2;
+  text-align:center;
+  padding:60px 20px 100px;
+  font-size:11px;
+  letter-spacing:.15em;
+  color:rgba(248,247,244,0.3);
+  text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+
+<!-- Ambient background sky (stars, nebula, shooting stars, parallax) -->
+<canvas id="sky"></canvas>
+
+<!-- Custom cursor -->
+<div id="cursor-glow"></div>
+
+<!-- Chapter navigation -->
+<nav id="chapter-nav">
+  <div class="nav-dot" data-target="ch-opening" data-label="Opening Galaxy"></div>
+  <div class="nav-dot" data-target="ch-door" data-label="The Door"></div>
+  <div class="nav-dot" data-target="ch-universe" data-label="Star Universe"></div>
+  <div class="nav-dot" data-target="ch-timeline" data-label="Memory Timeline"></div>
+  <div class="nav-dot" data-target="ch-reasons" data-label="Reasons"></div>
+  <div class="nav-dot" data-target="ch-jar" data-label="Memory Jar"></div>
+  <div class="nav-dot" data-target="ch-game" data-label="Catch the Stars"></div>
+  <div class="nav-dot" data-target="ch-dreams" data-label="Future Dreams"></div>
+  <div class="nav-dot hidden-chapter" id="secret-nav-dot" data-target="ch-secret" data-label="Secret Room"></div>
+  <div class="nav-dot" data-target="ch-finale" data-label="Finale"></div>
+</nav>
+
+<!-- Audio player -->
+<div id="audio-player">
+  <button id="play-pause" aria-label="Play or pause music">&#9658;</button>
+  <button id="mute-btn" aria-label="Mute music">&#128266;</button>
+  <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
+  <span class="audio-label">Piano</span>
+</div>
+<!--
+  Add your own instrumental piano track at assets/piano.mp3 to enable music.
+  The site works fully offline and gracefully continues in silence if the
+  file is missing.
+-->
+<audio id="bg-audio" loop preload="none">
+  <source src="assets/piano.mp3" type="audio/mpeg">
+</audio>
+
+<div id="ch-locked-hint"></div>
+
+<!-- ============================================================
+     CHAPTER 1 — OPENING GALAXY
+     ============================================================ -->
+<section class="chapter" id="ch-opening">
+  <div class="eyebrow reveal visible">A Universe of One</div>
+  <h1>MAHNOOR</h1>
+  <p class="sub">for the girl the stars keep talking about</p>
+  <button class="glow-btn" id="begin-btn" style="margin-top:60px;">Begin</button>
+  <div class="scroll-hint">scroll or click to continue</div>
+</section>
+
+<!-- ============================================================
+     CHAPTER 2 — THE DOOR
+     ============================================================ -->
+<section class="chapter" id="ch-door">
+  <div class="eyebrow reveal">Chapter One</div>
+  <h2 class="reveal">The Door</h2>
+  <div class="door-scene">
+    <div class="door-light" id="door-light"></div>
+    <div class="door-frame" id="door-frame">
+      <div class="door-handle"></div>
+    </div>
+  </div>
+  <p class="hint reveal">click the door</p>
+</section>
+
+<!-- ============================================================
+     CHAPTER 3 — INTERACTIVE STAR UNIVERSE
+     ============================================================ -->
+<section class="chapter" id="ch-universe">
+  <div class="eyebrow reveal">Chapter Two</div>
+  <h2 class="reveal">A Universe Just for You</h2>
+  <p class="lede reveal">Somewhere between a thousand ordinary stars, five of them only ever shine for you. Touch them.</p>
+  <div class="universe-stage" id="universe-stage">
+    <div class="moon" id="moon" title="click the moon"></div>
+    <!-- hotstars are positioned by JS -->
+    <div class="tooltip-card" id="star-tooltip"></div>
+    <div class="moon-counter" id="moon-counter"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CHAPTER 4 — MEMORY TIMELINE
+     ============================================================ -->
+<section class="chapter" id="ch-timeline">
+  <div class="eyebrow reveal">Chapter Three</div>
+  <h2 class="reveal">Small Moments, Kept Safe</h2>
+  <div class="timeline">
+    <div class="timeline-item reveal">
+      <span class="date">The first noticing</span>
+      <p>There was a moment I stopped mid-sentence, because your eyes had said something your words hadn't caught up to yet.</p>
+    </div>
+    <div class="timeline-item reveal">
+      <span class="date">An ordinary tuesday</span>
+      <p>You laughed about something small, and your voice did that thing it does — turned a forgettable afternoon into one I still carry.</p>
+    </div>
+    <div class="timeline-item reveal">
+      <span class="date">A harder week</span>
+      <p>You didn't fix anything. You just cared, out loud, until it was enough. I've never forgotten how that felt.</p>
+    </div>
+    <div class="timeline-item reveal">
+      <span class="date">14 August</span>
+      <p>The day the universe decided it needed a Mahnoor in it. I'm only ever grateful it did.</p>
+    </div>
+    <div class="timeline-item reveal">
+      <span class="date">Now</span>
+      <p>Still here. Still choosing the version of my day that has you somewhere in it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CHAPTER 5 — FLOATING REASONS I LOVE YOU
+     ============================================================ -->
+<section class="chapter" id="ch-reasons">
+  <div class="eyebrow reveal">Chapter Four</div>
+  <h2 class="reveal">Reasons, Set Loose Like Lanterns</h2>
+  <p class="lede reveal">They keep drifting up. I keep finding more.</p>
+  <div class="lantern-field" id="lantern-field"><!-- lanterns injected by JS --></div>
+</section>
+
+<!-- ============================================================
+     CHAPTER 6 — MEMORY JAR
+     ============================================================ -->
+<section class="chapter" id="ch-jar">
+  <div class="eyebrow reveal">Chapter Five</div>
+  <h2 class="reveal">A Jar Full of Fireflies</h2>
+  <p class="lede reveal">Every one of them is a memory I didn't want to lose. Catch one.</p>
+  <div class="jar-wrap" id="jar-wrap">
+    <svg class="jar-svg" viewBox="0 0 200 260">
+      <path d="M60 40 Q60 10 100 10 Q140 10 140 40 L140 60 L150 70 L150 220 Q150 250 100 250 Q50 250 50 220 L50 70 L60 60 Z"
+            fill="rgba(212,175,138,0.06)" stroke="rgba(212,175,138,0.5)" stroke-width="2"/>
+      <rect x="72" y="8" width="56" height="18" rx="6" fill="rgba(109,7,26,0.4)" stroke="rgba(212,175,138,0.5)"/>
+    </svg>
+    <!-- fireflies injected by JS -->
+  </div>
+  <p class="hint">click a firefly to open a memory</p>
+</section>
+
+<!-- ============================================================
+     CHAPTER 7 — MINI LOVE GAME
+     ============================================================ -->
+<section class="chapter" id="ch-game">
+  <div class="eyebrow reveal">Chapter Six</div>
+  <h2 class="reveal">Catch Every Star Meant for You</h2>
+  <div class="game-hud">
+    <span id="game-score">STARS 0 / 12</span>
+    <span id="game-status">MOVE YOUR CURSOR</span>
+  </div>
+  <canvas id="game-canvas" width="640" height="380"></canvas>
+  <div class="game-message" id="game-message"></div>
+</section>
+
+<!-- ============================================================
+     CHAPTER 8 — FUTURE DREAMS
+     ============================================================ -->
+<section class="chapter" id="ch-dreams">
+  <div class="eyebrow reveal">Chapter Seven</div>
+  <h2 class="reveal">Everything I Still Want With You</h2>
+  <div class="dream-grid">
+    <div class="dream-card reveal"><span class="icon">&#10022;</span><p>Watching an ordinary sunset slow all the way down, just because you're next to me.</p></div>
+    <div class="dream-card reveal"><span class="icon">&#10022;</span><p>Collecting places neither of us has stamps for yet.</p></div>
+    <div class="dream-card reveal"><span class="icon">&#10022;</span><p>Turning your birthday into a yearly reminder of how lucky the calendar got.</p></div>
+    <div class="dream-card reveal"><span class="icon">&#10022;</span><p>Still learning new things about your voice, twenty years from now.</p></div>
+    <div class="dream-card reveal"><span class="icon">&#10022;</span><p>Building a life quiet enough that your kindness is the loudest thing in it.</p></div>
+    <div class="dream-card reveal"><span class="icon">&#10022;</span><p>Growing old with the same inside jokes, just told slower.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CHAPTER 9 — SECRET ROOM (hidden until unlocked)
+     ============================================================ -->
+<section class="chapter" id="ch-secret">
+  <div class="eyebrow reveal visible">A Door Only the Curious Find</div>
+  <div class="secret-glow"></div>
+  <h2 class="reveal visible">You Found It, Mano</h2>
+  <p class="lede reveal visible">Some things aren't meant to be handed over easily. This one, you had to look for — the same way I'd look for you, in any room, in any galaxy.</p>
+</section>
+
+<!-- ============================================================
+     CHAPTER 10 — FINAL GALAXY ENDING
+     ============================================================ -->
+<section class="chapter" id="ch-finale">
+  <canvas id="finale-canvas"></canvas>
+  <div class="eyebrow reveal">Final Chapter</div>
+  <h2 class="reveal">The Whole Sky, Rearranged</h2>
+  <div class="letter" id="the-letter">
+    Dear MANO,<br><br>
+    If someone asked me to choose between every star in the universe and the one person who makes my world brighter, I would choose you every single time.<br><br>
+    Your eyes, your voice, and the way you care make ordinary days feel extraordinary.<br><br>
+    This website isn't just code. It's a small reflection of how much you mean to me.<br><br>
+    Happy early birthday. May your smile always shine brighter than the stars above us.
+    <div class="sign">Forever Yours,<br>MR</div>
+  </div>
+  <p class="final-quote" id="final-quote">"In a universe filled with endless stars... my favorite one will always be you."</p>
+  <button class="glow-btn" id="forever-btn" style="margin-top:50px;">Begin Our Forever</button>
+</section>
+
+<footer class="credit reveal visible">made quietly, meant forever</footer>
+
+<!-- Infinite ending screen -->
+<div class="forever-screen" id="forever-screen">
+  <canvas id="forever-canvas"></canvas>
+  <h3>and the stars kept turning, gently, for as long as you'd like to stay</h3>
+</div>
+
+<script>
+/* ============================================================
+   GLOBAL STATE
+   ============================================================ */
+const state = {
+  moonClicks: 0,
+  secretUnlocked: false,
+  gameScore: 0,
+  gameTarget: 12,
+  gameOver: false
+};
+
+/* ============================================================
+   CUSTOM CURSOR
+   ============================================================ */
+const cursorGlow = document.getElementById('cursor-glow');
+let mouseX = window.innerWidth/2, mouseY = window.innerHeight/2;
+window.addEventListener('mousemove', (e)=>{
+  mouseX = e.clientX; mouseY = e.clientY;
+  cursorGlow.style.left = mouseX + 'px';
+  cursorGlow.style.top = mouseY + 'px';
+});
+document.addEventListener('mousedown', ()=>cursorGlow.classList.add('active'));
+document.addEventListener('mouseup', ()=>cursorGlow.classList.remove('active'));
+
+// light cursor trail (a few fading dots)
+const trailPool = [];
+for(let i=0;i<8;i++){
+  const d = document.createElement('div');
+  d.className='cursor-dot';
+  d.style.opacity = (1 - i/8).toFixed(2);
+  document.body.appendChild(d);
+  trailPool.push({el:d, x:mouseX, y:mouseY});
+}
+function animateTrail(){
+  let px = mouseX, py = mouseY;
+  trailPool.forEach((p,i)=>{
+    p.x += (px - p.x) * 0.35;
+    p.y += (py - p.y) * 0.35;
+    p.el.style.left = p.x+'px';
+    p.el.style.top = p.y+'px';
+    px = p.x; py = p.y;
+  });
+  requestAnimationFrame(animateTrail);
+}
+animateTrail();
+
+/* ============================================================
+   BACKGROUND SKY — twinkling stars, nebula drift, shooting stars,
+   with gentle parallax that follows the mouse.
+   ============================================================ */
+const sky = document.getElementById('sky');
+const ctx = sky.getContext('2d');
+let w, h;
+function resizeSky(){
+  w = sky.width = window.innerWidth;
+  h = sky.height = window.innerHeight;
+}
+resizeSky();
+window.addEventListener('resize', resizeSky);
+
+const STAR_COUNT = 220;
+const stars = [];
+for(let i=0;i<STAR_COUNT;i++){
+  stars.push({
+    x: Math.random()*w,
+    y: Math.random()*h,
+    r: Math.random()*1.4 + 0.3,
+    baseAlpha: Math.random()*0.6 + 0.3,
+    twinkleSpeed: Math.random()*0.02 + 0.005,
+    phase: Math.random()*Math.PI*2,
+    parallax: Math.random()*0.5 + 0.1
+  });
+}
+
+let shootingStars = [];
+function maybeSpawnShootingStar(){
+  if(Math.random() < 0.006){
+    shootingStars.push({
+      x: Math.random()*w*0.6 + w*0.2,
+      y: Math.random()*h*0.2,
+      len: Math.random()*120+80,
+      speed: Math.random()*7+6,
+      angle: Math.PI*0.78,
+      life: 1
+    });
+  }
+}
+
+let parallaxX = 0, parallaxY = 0;
+window.addEventListener('mousemove', (e)=>{
+  parallaxX = (e.clientX / w - 0.5) * 18;
+  parallaxY = (e.clientY / h - 0.5) * 18;
+});
+
+let t = 0;
+function drawSky(){
+  t += 1;
+  ctx.clearRect(0,0,w,h);
+
+  // stars
+  stars.forEach(s=>{
+    const twinkle = Math.sin(t*s.twinkleSpeed + s.phase) * 0.35 + 0.65;
+    const alpha = s.baseAlpha * twinkle;
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(248,247,244,${alpha})`;
+    ctx.arc(s.x + parallaxX*s.parallax, s.y + parallaxY*s.parallax, s.r, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // shooting stars
+  maybeSpawnShootingStar();
+  shootingStars.forEach(ss=>{
+    ctx.save();
+    const grad = ctx.createLinearGradient(ss.x, ss.y, ss.x - Math.cos(ss.angle)*ss.len, ss.y - Math.sin(ss.angle)*ss.len);
+    grad.addColorStop(0, `rgba(232,200,116,${ss.life})`);
+    grad.addColorStop(1, 'rgba(232,200,116,0)');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ss.x, ss.y);
+    ctx.lineTo(ss.x - Math.cos(ss.angle)*ss.len, ss.y - Math.sin(ss.angle)*ss.len);
+    ctx.stroke();
+    ctx.restore();
+    ss.x += Math.cos(ss.angle)*ss.speed;
+    ss.y += Math.sin(ss.angle)*ss.speed;
+    ss.life -= 0.012;
+  });
+  shootingStars = shootingStars.filter(ss=>ss.life>0 && ss.y < h+50);
+
+  requestAnimationFrame(drawSky);
+}
+drawSky();
+
+/* ============================================================
+   REVEAL ON SCROLL (Intersection Observer)
+   ============================================================ */
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      entry.target.classList.add('visible');
+    }
+  });
+}, {threshold:0.25});
+revealEls.forEach(el=>io.observe(el));
+
+/* ============================================================
+   CHAPTER NAV — smooth scroll + active dot tracking
+   ============================================================ */
+const chapters = document.querySelectorAll('.chapter');
+const navDots = document.querySelectorAll('.nav-dot');
+navDots.forEach(dot=>{
+  dot.addEventListener('click', ()=>{
+    const target = document.getElementById(dot.dataset.target);
+    if(target) target.scrollIntoView({behavior:'smooth'});
+  });
+});
+const navObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      navDots.forEach(d=>d.classList.remove('current'));
+      const active = document.querySelector(`.nav-dot[data-target="${entry.target.id}"]`);
+      if(active) active.classList.add('current');
+    }
+  });
+}, {threshold:0.5});
+chapters.forEach(c=>navObserver.observe(c));
+
+/* ============================================================
+   BEGIN BUTTON — scroll to Chapter One
+   ============================================================ */
+document.getElementById('begin-btn').addEventListener('click', ()=>{
+  document.getElementById('ch-door').scrollIntoView({behavior:'smooth'});
+});
+
+/* ============================================================
+   AUDIO CONTROLS
+   ============================================================ */
+const audio = document.getElementById('bg-audio');
+const playPauseBtn = document.getElementById('play-pause');
+const muteBtn = document.getElementById('mute-btn');
+const volumeSlider = document.getElementById('volume-slider');
+audio.volume = 0.5;
+let isPlaying = false;
+
+playPauseBtn.addEventListener('click', ()=>{
+  if(isPlaying){
+    audio.pause();
+    playPauseBtn.innerHTML = '&#9658;';
+  } else {
+    audio.play().catch(()=>{ /* file may be missing offline — fail silently */ });
+    playPauseBtn.innerHTML = '&#10074;&#10074;';
+  }
+  isPlaying = !isPlaying;
+});
+muteBtn.addEventListener('click', ()=>{
+  audio.muted = !audio.muted;
+  muteBtn.innerHTML = audio.muted ? '&#128263;' : '&#128266;';
+});
+volumeSlider.addEventListener('input', (e)=>{
+  audio.volume = parseFloat(e.target.value);
+});
+// gentle chapter-to-chapter crossfade cue: nudge volume down/up slightly
+// whenever a new chapter enters view, to feel like the music breathes with the story.
+let lastChapterId = '';
+const fadeObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting && entry.target.id !== lastChapterId){
+      lastChapterId = entry.target.id;
+      if(!audio.muted && isPlaying){
+        const target = parseFloat(volumeSlider.value);
+        audio.volume = Math.max(0, target - 0.15);
+        setTimeout(()=>{ audio.volume = target; }, 700);
+      }
+    }
+  });
+}, {threshold:0.6});
+chapters.forEach(c=>fadeObserver.observe(c));
+
+/* ============================================================
+   CHAPTER 2 — THE DOOR
+   ============================================================ */
+const doorFrame = document.getElementById('door-frame');
+const doorLight = document.getElementById('door-light');
+doorFrame.addEventListener('click', ()=>{
+  if(doorFrame.classList.contains('open')) return;
+  doorFrame.classList.add('open');
+  setTimeout(()=>{
+    doorLight.classList.add('burst');
+  }, 900);
+  setTimeout(()=>{
+    document.getElementById('ch-universe').scrollIntoView({behavior:'smooth'});
+  }, 2200);
+});
+
+/* ============================================================
+   CHAPTER 3 — INTERACTIVE STAR UNIVERSE
+   ============================================================ */
+const universeStage = document.getElementById('universe-stage');
+const starTooltip = document.getElementById('star-tooltip');
+const moon = document.getElementById('moon');
+const moonCounter = document.getElementById('moon-counter');
+const secretNavDot = document.getElementById('secret-nav-dot');
+const lockedHint = document.getElementById('ch-locked-hint');
+
+const traitStars = [
+  { label:'Her Eyes', x:'12%', y:'30%', text:'Your eyes say the honest version of whatever your words are still deciding how to say.' },
+  { label:'Her Voice', x:'30%', y:'62%', text:'Your voice has this way of making even a tired hello sound like good news.' },
+  { label:'Her Care', x:'55%', y:'22%', text:'You care the way some people breathe — without announcing it, without needing thanks for it.' },
+  { label:'Birthday', x:'70%', y:'55%', text:'14 August. The day the universe quietly outdid itself.' },
+  { label:'Forever', x:'85%', y:'32%', text:'Out of every star I could have wished on, I keep wishing on the same one — you.' },
+];
+
+traitStars.forEach((s)=>{
+  const el = document.createElement('div');
+  el.className = 'hotstar';
+  el.style.left = s.x;
+  el.style.top = s.y;
+  el.style.animationDelay = (Math.random()*3)+'s';
+  const label = document.createElement('span');
+  label.className = 'label';
+  label.textContent = s.label;
+  el.appendChild(label);
+  el.addEventListener('click', ()=>{
+    starTooltip.textContent = s.text;
+    starTooltip.classList.add('show');
+  });
+  universeStage.appendChild(el);
+});
+universeStage.addEventListener('click', (e)=>{
+  if(!e.target.closest('.hotstar')){
+    starTooltip.classList.remove('show');
+  }
+});
+
+// Moon: reacts on click; 5 clicks unlocks the Secret Room
+moon.addEventListener('click', ()=>{
+  moon.classList.remove('pulse');
+  void moon.offsetWidth; // restart animation
+  moon.classList.add('pulse');
+  state.moonClicks++;
+  moonCounter.textContent = state.moonClicks < 5 ? '' : '';
+  if(state.moonClicks === 3){
+    lockedHint.textContent = 'the moon seems to be listening...';
+    lockedHint.style.opacity = '1';
+    setTimeout(()=>{ lockedHint.style.opacity='0'; }, 2600);
+  }
+  if(state.moonClicks >= 5 && !state.secretUnlocked){
+    state.secretUnlocked = true;
+    secretNavDot.classList.add('revealed');
+    document.getElementById('ch-secret').classList.add('unlocked');
+    lockedHint.textContent = 'a secret room has opened in the constellation nav →';
+    lockedHint.style.opacity = '1';
+    setTimeout(()=>{ lockedHint.style.opacity='0'; }, 3600);
+  }
+});
+
+/* ============================================================
+   CHAPTER 5 — FLOATING REASONS
+   ============================================================ */
+const reasons = [
+  "The way your eyes give away what you're feeling before you say a word.",
+  "How your voice can turn a hard day soft again.",
+  "You care about people the way most of us wish we had the patience to.",
+  "You remember the small things. Every time.",
+  "You make ordinary rooms feel less ordinary just by being in them.",
+  "Your kindness isn't performed. It's just who you are.",
+];
+const lanternField = document.getElementById('lantern-field');
+const positions = [
+  {left:'6%', top:'8%'}, {left:'62%', top:'4%'}, {left:'28%', top:'40%'},
+  {left:'70%', top:'44%'}, {left:'10%', top:'68%'}, {left:'55%', top:'74%'}
+];
+reasons.forEach((text,i)=>{
+  const el = document.createElement('div');
+  el.className = 'lantern';
+  el.style.left = positions[i].left;
+  el.style.top = positions[i].top;
+  el.style.animationDelay = (i*0.6)+'s';
+  el.textContent = 'a reason...';
+  el.dataset.text = text;
+  el.addEventListener('click', ()=>{
+    el.textContent = text;
+    el.classList.add('opened');
+  });
+  lanternField.appendChild(el);
+});
+
+/* ============================================================
+   CHAPTER 6 — MEMORY JAR
+   ============================================================ */
+const jarWrap = document.getElementById('jar-wrap');
+const jarMemories = [
+  "The first time you sent a voice note, just to say goodnight.",
+  "The joke that still makes no sense to anyone but us.",
+  "The day you noticed I was quiet, and didn't let it go.",
+  "A birthday I'm already looking forward to celebrating with you.",
+];
+const jarPositions = [
+  {left:'40%', top:'55%'}, {left:'60%', top:'40%'}, {left:'48%', top:'80%'}, {left:'55%', top:'30%'}
+];
+jarMemories.forEach((mem,i)=>{
+  const el = document.createElement('div');
+  el.className = 'firefly';
+  el.style.left = jarPositions[i].left;
+  el.style.top = jarPositions[i].top;
+  el.style.animationDelay = (i*0.5)+'s';
+  el.title = 'a memory';
+  el.addEventListener('click', ()=>{
+    const tip = document.createElement('div');
+    tip.className = 'tooltip-card show';
+    tip.style.position='absolute';
+    tip.style.bottom='-80px';
+    tip.style.left='50%';
+    tip.textContent = mem;
+    jarWrap.appendChild(tip);
+    setTimeout(()=>tip.remove(), 3800);
+  });
+  jarWrap.appendChild(el);
+});
+
+/* ============================================================
+   CHAPTER 7 — MINI LOVE GAME: catch the falling stars
+   ============================================================ */
+const gameCanvas = document.getElementById('game-canvas');
+const gctx = gameCanvas.getContext('2d');
+const gameScoreEl = document.getElementById('game-score');
+const gameStatusEl = document.getElementById('game-status');
+const gameMessageEl = document.getElementById('game-message');
+
+let basketX = gameCanvas.width/2;
+gameCanvas.addEventListener('mousemove', (e)=>{
+  const rect = gameCanvas.getBoundingClientRect();
+  basketX = (e.clientX - rect.left) * (gameCanvas.width/rect.width);
+});
+gameCanvas.addEventListener('touchmove', (e)=>{
+  const rect = gameCanvas.getBoundingClientRect();
+  basketX = (e.touches[0].clientX - rect.left) * (gameCanvas.width/rect.width);
+  e.preventDefault();
+}, {passive:false});
+
+let fallingStars = [];
+function spawnFallingStar(){
+  fallingStars.push({
+    x: Math.random()*(gameCanvas.width-20)+10,
+    y: -10,
+    speed: Math.random()*1.6+1.4,
+    r: Math.random()*4+3
+  });
+}
+let gameStarted = false;
+let spawnTimer;
+
+function runGame(){
+  gctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
+
+  // basket (a small crescent/heart glyph following the cursor)
+  gctx.save();
+  gctx.translate(basketX, gameCanvas.height - 30);
+  gctx.fillStyle = '#E8C874';
+  gctx.beginPath();
+  gctx.moveTo(0, 10);
+  gctx.bezierCurveTo(-18,-14, -34,6, 0,26);
+  gctx.bezierCurveTo(34,6, 18,-14, 0,10);
+  gctx.fill();
+  gctx.restore();
+
+  fallingStars.forEach(s=>{
+    gctx.beginPath();
+    gctx.fillStyle = '#F8F7F4';
+    gctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    gctx.fill();
+    s.y += s.speed;
+  });
+
+  // collision with basket
+  fallingStars = fallingStars.filter(s=>{
+    const caught = Math.abs(s.x-basketX) < 30 && s.y > gameCanvas.height-46 && s.y < gameCanvas.height-10;
+    if(caught && !state.gameOver){
+      state.gameScore++;
+      gameScoreEl.textContent = `STARS ${state.gameScore} / ${state.gameTarget}`;
+      if(state.gameScore >= state.gameTarget){
+        state.gameOver = true;
+        gameStatusEl.textContent = 'COMPLETE';
+        gameMessageEl.textContent = "You caught every star meant for you. That's the whole point — I never had to look far.";
+        clearInterval(spawnTimer);
+      }
+      return false;
+    }
+    return s.y < gameCanvas.height + 20;
+  });
+
+  if(!state.gameOver) requestAnimationFrame(runGame);
+}
+
+function startGameIfNeeded(){
+  if(gameStarted) return;
+  gameStarted = true;
+  gameStatusEl.textContent = 'CATCHING...';
+  spawnTimer = setInterval(spawnFallingStar, 650);
+  runGame();
+}
+const gameObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting) startGameIfNeeded();
+  });
+}, {threshold:0.4});
+gameObserver.observe(document.getElementById('ch-game'));
+
+/* ============================================================
+   CHAPTER 10 — FINAL GALAXY: heart of stars morphing into "MANO"
+   ============================================================ */
+const finaleCanvas = document.getElementById('finale-canvas');
+const fctx = finaleCanvas.getContext('2d');
+let fw, fh;
+function resizeFinale(){
+  fw = finaleCanvas.width = finaleCanvas.clientWidth;
+  fh = finaleCanvas.height = finaleCanvas.clientHeight;
+}
+function sampleTextPoints(text, w, h, count){
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const octx = off.getContext('2d');
+  octx.clearRect(0,0,w,h);
+  octx.fillStyle = '#fff';
+  const fontSize = Math.min(w/text.length*1.35, h*0.5);
+  octx.font = `700 ${fontSize}px var(--serif), serif`;
+  octx.textAlign = 'center';
+  octx.textBaseline = 'middle';
+  octx.fillText(text, w/2, h/2);
+  const data = octx.getImageData(0,0,w,h).data;
+  const points = [];
+  const step = 4;
+  for(let y=0; y<h; y+=step){
+    for(let x=0; x<w; x+=step){
+      const idx = (y*w+x)*4;
+      if(data[idx+3] > 128){
+        points.push({x,y});
+      }
+    }
+  }
+  // shuffle then slice to desired count
+  for(let i=points.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [points[i],points[j]]=[points[j],points[i]];
+  }
+  return points.slice(0, count);
+}
+function heartPoint(i, total, w, h){
+  const t = (i/total) * Math.PI * 2;
+  const scale = Math.min(w,h) * 0.34;
+  const x = 16*Math.pow(Math.sin(t),3);
+  const y = -(13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t));
+  return { x: w/2 + (x/17)*scale, y: h/2 + (y/17)*scale*0.9 };
+}
+
+let finaleParticles = [];
+let finaleStage = 'heart'; // heart -> hold -> morph -> name -> hold
+let finaleTimer = 0;
+
+function initFinale(){
+  resizeFinale();
+  const count = 420;
+  const textPoints = sampleTextPoints('MANO', fw, fh, count);
+  finaleParticles = [];
+  for(let i=0;i<count;i++){
+    const hp = heartPoint(i, count, fw, fh);
+    const tp = textPoints[i % textPoints.length] || hp;
+    finaleParticles.push({
+      x: Math.random()*fw, y: Math.random()*fh,
+      heartX: hp.x, heartY: hp.y,
+      nameX: tp.x, nameY: tp.y,
+      curX: Math.random()*fw, curY: Math.random()*fh,
+      size: Math.random()*1.6+1,
+    });
+  }
+  finaleStage = 'gather';
+  finaleTimer = 0;
+}
+
+function drawFinale(){
+  fctx.clearRect(0,0,fw,fh);
+  finaleTimer++;
+
+  let targetKey = finaleStage === 'name' || finaleStage === 'morph' ? 'name' : 'heart';
+  if(finaleStage === 'gather' && finaleTimer > 160) finaleStage = 'hold';
+  if(finaleStage === 'hold' && finaleTimer > 300) { finaleStage = 'morph'; }
+  if(finaleStage === 'morph' && finaleTimer > 460) finaleStage = 'name';
+
+  finaleParticles.forEach(p=>{
+    const tx = targetKey === 'name' ? p.nameX : p.heartX;
+    const ty = targetKey === 'name' ? p.nameY : p.heartY;
+    p.curX += (tx - p.curX) * 0.045;
+    p.curY += (ty - p.curY) * 0.045;
+    fctx.beginPath();
+    const glow = fctx.createRadialGradient(p.curX,p.curY,0,p.curX,p.curY,p.size*4);
+    glow.addColorStop(0, 'rgba(248,247,244,0.9)');
+    glow.addColorStop(1, 'rgba(232,200,116,0)');
+    fctx.fillStyle = glow;
+    fctx.arc(p.curX, p.curY, p.size*4, 0, Math.PI*2);
+    fctx.fill();
+    fctx.beginPath();
+    fctx.fillStyle = '#F8F7F4';
+    fctx.arc(p.curX, p.curY, p.size, 0, Math.PI*2);
+    fctx.fill();
+  });
+
+  requestAnimationFrame(drawFinale);
+}
+
+let finaleStarted = false;
+const finaleObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting && !finaleStarted){
+      finaleStarted = true;
+      initFinale();
+      drawFinale();
+      setTimeout(()=>{
+        document.getElementById('the-letter').classList.add('show');
+      }, 5200);
+      setTimeout(()=>{
+        document.getElementById('final-quote').classList.add('show');
+      }, 9000);
+    }
+  });
+}, {threshold:0.3});
+finaleObserver.observe(document.getElementById('ch-finale'));
+window.addEventListener('resize', ()=>{ if(finaleStarted){ resizeFinale(); } });
+
+/* ============================================================
+   FOREVER SCREEN — infinite looping night sky
+   ============================================================ */
+const foreverScreen = document.getElementById('forever-screen');
+const foreverCanvas = document.getElementById('forever-canvas');
+const fvctx = foreverCanvas.getContext('2d');
+document.getElementById('forever-btn').addEventListener('click', ()=>{
+  foreverScreen.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  initForever();
+  runForever();
+  if(!isPlaying){
+    audio.play().catch(()=>{});
+    isPlaying = true;
+    playPauseBtn.innerHTML = '&#10074;&#10074;';
+  }
+});
+
+let foreverStars = [], foreverLanterns = [];
+function initForever(){
+  foreverCanvas.width = window.innerWidth;
+  foreverCanvas.height = window.innerHeight;
+  foreverStars = [];
+  for(let i=0;i<180;i++){
+    foreverStars.push({
+      x: Math.random()*foreverCanvas.width,
+      y: Math.random()*foreverCanvas.height,
+      r: Math.random()*1.3+0.3,
+      phase: Math.random()*Math.PI*2,
+      speed: Math.random()*0.02+0.005
+    });
+  }
+  foreverLanterns = [];
+  for(let i=0;i<10;i++){
+    foreverLanterns.push({
+      x: Math.random()*foreverCanvas.width,
+      y: foreverCanvas.height + Math.random()*300,
+      speed: Math.random()*0.4+0.2,
+      drift: Math.random()*0.6-0.3,
+      size: Math.random()*4+3
+    });
+  }
+}
+let ft = 0;
+function runForever(){
+  ft++;
+  fvctx.clearRect(0,0,foreverCanvas.width, foreverCanvas.height);
+  foreverStars.forEach(s=>{
+    const a = Math.sin(ft*s.speed+s.phase)*0.35+0.65;
+    fvctx.beginPath();
+    fvctx.fillStyle = `rgba(248,247,244,${a})`;
+    fvctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    fvctx.fill();
+  });
+  foreverLanterns.forEach(l=>{
+    l.y -= l.speed;
+    l.x += l.drift;
+    if(l.y < -20){ l.y = foreverCanvas.height+20; l.x = Math.random()*foreverCanvas.width; }
+    fvctx.beginPath();
+    const glow = fvctx.createRadialGradient(l.x,l.y,0,l.x,l.y,l.size*5);
+    glow.addColorStop(0,'rgba(232,200,116,0.9)');
+    glow.addColorStop(1,'rgba(232,200,116,0)');
+    fvctx.fillStyle = glow;
+    fvctx.arc(l.x,l.y,l.size*5,0,Math.PI*2);
+    fvctx.fill();
+    fvctx.beginPath();
+    fvctx.fillStyle = '#E8C874';
+    fvctx.arc(l.x,l.y,l.size,0,Math.PI*2);
+    fvctx.fill();
+  });
+  if(foreverScreen.classList.contains('active')) requestAnimationFrame(runForever);
+}
+window.addEventListener('resize', ()=>{ if(foreverScreen.classList.contains('active')) initForever(); });
+
+</script>
+</body>
+</html>
